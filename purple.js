@@ -1,5 +1,7 @@
 var os = require('os');
 var path = require('path');
+var util = require('util');
+var EventEmitter = require('events').EventEmitter;
 
 var FFI = require('ffi');
 var ref = require('ref');
@@ -26,8 +28,10 @@ var lib, Plugin;
 var types = require('./lib/types');
 var eventloop = require('./lib/eventloop');
 
+
 var Purple = function (args) {
-  var uiops;
+  var uiops, conv_ui_ops, ui_init_ptr;
+  var self = this;
 
   if (!(this instanceof Purple)) {
     return new Purple(args);
@@ -49,12 +53,19 @@ var Purple = function (args) {
   lib.purple_init_ssl_openssl_plugin();
   lib.purple_init_ssl_cdsa_plugin();
 
-  //lib.purple_ssl_init();
+  conv_ui_ops = new types.PurpleConversationUiOps();
+  conv_ui_ops._pointer.fill(0);
+
+  function ui_init() {
+    console.log('conv_ui_ops set');
+    lib.purple_conversations_set_ui_ops(conv_ui_ops.ref());
+  }
+  ui_init_ptr = FFI.Callback(ref.types.void, [], ui_init);
 
   uiops = new types.PurpleCoreUiOps();
   uiops._pointer.fill(0);
-
-  lib.purple_core_set_ui_ops(uiops);
+  uiops.ui_init = ui_init_ptr;
+  lib.purple_core_set_ui_ops(uiops.ref());
 
   lib.purple_eventloop_set_ui_ops(eventloop);
 
@@ -112,6 +123,35 @@ var Purple = function (args) {
   this.disableAccount = function (value) {
     lib.purple_account_set_enabled(value.instance, this.ui_id, 0);
   };
+
+  function write_conv(conv, who, alias, message, flags, time) {
+    self.emit('write_conv', conv, who, alias, message, flags, new Date(time * 1000));
+  }
+
+  var write_conv_ptr = FFI.Callback(ref.types.void, [
+    ref.refType(ref.types.void),
+    ref.types.CString,
+    ref.types.CString,
+    ref.types.CString,
+    ref.types.uint32,
+    ref.types.uint64,
+  ], write_conv);
+
+  var _on = this.on;
+  this.on = function (event, cb) {
+    switch (event) {
+      case 'write_conv':
+        if (conv_ui_ops.write_conv.isNull()) {
+          conv_ui_ops.write_conv = write_conv_ptr;
+        }
+        break;
+      default:
+        throw new Error("Unknown event " + event);
+        break;
+    }
+    _on.call(self, event, cb);
+  };
 };
+util.inherits(Purple, EventEmitter);
 
 module.exports = Purple;
