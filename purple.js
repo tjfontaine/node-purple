@@ -23,7 +23,7 @@ switch (os.platform()) {
 
 exports.LIBRARY_PATHS = LIBRARY_PATHS;
 
-var lib, Plugin;
+var lib, Plugin, Conversation;
 
 var types = require('./lib/types');
 var eventloop = require('./lib/eventloop');
@@ -40,6 +40,7 @@ var Purple = function (args) {
   if (!lib) {
     lib = require('./lib/libpurple').initialize(LIBRARY_PATHS);
     Plugin = require('./lib/plugin');
+    Conversation = require('./lib/conversation');
   }
 
   if (!args) {
@@ -125,7 +126,14 @@ var Purple = function (args) {
   };
 
   function write_conv(conv, who, alias, message, flags, time) {
-    self.emit('write_conv', conv, who, alias, message, flags, new Date(time * 1000));
+    self.emit('write_conv',
+      new Conversation(conv),
+      who,
+      alias,
+      message,
+      flags,
+      new Date(time * 1000)
+    );
   }
 
   var write_conv_ptr = FFI.Callback(ref.types.void, [
@@ -137,13 +145,36 @@ var Purple = function (args) {
     ref.types.uint64,
   ], write_conv);
 
+  function create_conversation(conv) {
+    self.emit('create_conversation', new Conversation(conv));
+  }
+
+  var create_conversation_ptr = FFI.Callback(ref.types.void, [
+    ref.refType(ref.types.void)
+  ], create_conversation);
+
+  function destroy_conversation(conv) {
+    self.emit('destroy_conversation', new Conversation(conv));
+  }
+
+  var destroy_conversation_ptr = FFI.Callback(ref.types.void, [
+    ref.refType(ref.types.void)
+  ], destroy_conversation);
+
   var _on = this.on;
   this.on = function (event, cb) {
     switch (event) {
+      case 'create_conversation':
+        if (conv_ui_ops.create_conversation.isNull())
+          conv_ui_ops.create_conversation = create_conversation_ptr;
+        break;
+      case 'destroy_conversation':
+        if (conv_ui_ops.destroy_conversation.isNull())
+          conv_ui_ops.destroy_conversation = destroy_conversation_ptr;
+        break;
       case 'write_conv':
-        if (conv_ui_ops.write_conv.isNull()) {
+        if (conv_ui_ops.write_conv.isNull())
           conv_ui_ops.write_conv = write_conv_ptr;
-        }
         break;
       default:
         throw new Error("Unknown event " + event);
