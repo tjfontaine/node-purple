@@ -1,0 +1,32 @@
+{
+  "name": "purple",
+  "version": "0.0.1",
+  "author": "Timothy J Fontaine <tjfontaine@gmail.com> (http://atxconsulting.com)",
+  "description": "libpurple FFI Bindings",
+  "keywords": [
+    "libpurple",
+    "purple",
+    "pidgin",
+    "adium",
+    "meebo"
+  ],
+  "homepage": "http://github.com/tjfontaine/node-purple",
+  "bugs": {
+    "url": "http://github.com/tjfontaine/node-purple/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/tjfontaine/node-purple.git"
+  },
+  "main": "purple.js",
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "dependencies": {
+    "ffi": ">= 1.0.7",
+    "ref": ">= 0.0.17",
+    "ref-struct": ">= 0.0.3",
+    "ref-union": ">= 0.0.2",
+    "semver": ">= 1.0.14"
+  }
+}
