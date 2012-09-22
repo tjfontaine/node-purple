@@ -24,7 +24,7 @@ p.on('create_conversation', function (conversation) {
 });
 
 p.on('write_conv', function (conv, who, alias, message, flags, time) {
-  if (alias != 'nomegannomore') {
+  if (alias != 'someluser' || who != 'someluser') {
     conv.send('you said "' + message + '"');
   }
 });
