@@ -58,7 +58,6 @@ var Purple = function (args) {
   conv_ui_ops._pointer.fill(0);
 
   function ui_init() {
-    console.log('conv_ui_ops set');
     lib.purple_conversations_set_ui_ops(conv_ui_ops.ref());
   }
   ui_init_ptr = FFI.Callback(ref.types.void, [], ui_init);
